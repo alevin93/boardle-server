@@ -11,11 +11,13 @@ app.use(cors(corsOptions));
 app.use(express.json());
 //connectDB();
 
+
+
 app.post('/submit', (req, res) => {
   let errorflag = handleSubmission(req.body.user, req.body.data)
   
   if(errorflag) {
-    return res.sendStatus(400)
+    return res.send({ data: "You already sent that game!"})
   }
   
   res.sendStatus(200);
@@ -50,7 +52,8 @@ app.post('/createUser', (req, res) => {
     name : req.body.name,
     private : generateKey(15),
     public : generateKey(15),
-    dates : null
+    dates : null,
+    friends: [],
   }
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
     if(err) {
@@ -85,10 +88,49 @@ app.post('/createUser', (req, res) => {
   return res.json(newData);
 })
 
+app.post('/getFriendsData', (req, res) => {
+  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
+    if (err) {
+      console.error("File read error:", err);
+      return res.status(500).json({ error: 'File read error' }); 
+    }
+
+    try {
+      const existingData = JSON.parse(jsonString);
+
+      // Find the matching player
+      const playerIndex = existingData.findIndex(entry => entry.private === req.body.user);
+
+      if (playerIndex === -1) {
+        return res.status(404).json({ error: 'Player not found' }); 
+      }
+      let friendsArray = [existingData[playerIndex]];
+
+      existingData.forEach(element => {
+        for(i = 0; i < existingData[playerIndex].friends.length; i++) {
+          if(element.public === existingData[playerIndex].friends[i]) {
+            let publicPlayerData = element;
+            delete publicPlayerData.private;
+            delete publicPlayerData.friends;
+            friendsArray.push(publicPlayerData);
+          }
+        }
+      });
+
+
+      console.log(friendsArray); 
+      res.json(JSON.stringify(friendsArray));
+
+    } catch (err) {
+      console.error("Error parsing JSON:", err);
+      return res.status(500).json({ error: 'Invalid JSON format' });
+    }
+  });
+});
+
 app.listen(port, () => {
   console.log(`Backend listening on port ${port}`)
 })
-
 
 const handleSubmission = async (user, data) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {

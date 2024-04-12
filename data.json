@@ -1,1 +1,36 @@
-[{"name":"asdf","private":"cqq3PlLjOeHSiRe","public":"c8v8L6oBymTGhFc","dates":null},{"name":"","private":"TVpTDoOBEcUOs2l","public":"BJkK2lEShgOd6eR","dates":null}]
+[
+    {
+        "name": "Alex",
+        "private": "dLqIOSsETvuI2Qw",
+        "public": "HsU56yO3crvfGOa",
+        "dates": {
+            "2024-04-12": {
+                "games": {
+                    "Wordle": {
+                        "text": "Wordle 1,028 4/6*~~⬛🟨⬛⬛⬛~⬛⬛🟩🟩⬛~⬛🟩🟩🟩⬛~🟩🟩🟩🟩🟩"
+                    }
+                }
+            }
+        },
+        "friends": [
+            "HuU0GP49KNy1uPv"
+        ]
+    },
+    {
+        "name": "Angel",
+        "private": "2FgCdFl3m5hyVL6",
+        "public": "HuU0GP49KNy1uPv",
+        "dates": {
+            "2024-04-12": {
+                "games": {
+                    "Wordle": {
+                        "text": "Wordle 1,028 4/6~~⬜⬜🟩⬜⬜~⬜⬜🟩🟩⬜~⬜⬜🟩🟩⬜~🟩🟩🟩🟩🟩~"
+                    }
+                }
+            }
+        },
+        "friends": [
+            "HsU56yO3crvfGOa"
+        ]
+    }
+]
