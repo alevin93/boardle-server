@@ -1,36 +1,99 @@
 [
     {
         "name": "Alex",
-        "private": "dLqIOSsETvuI2Qw",
-        "public": "HsU56yO3crvfGOa",
+        "private": "G1vQjB3wFy1Acgx",
+        "public": "OSZVC7uqzc69d9R",
         "dates": {
-            "2024-04-12": {
-                "games": {
-                    "Wordle": {
-                        "text": "Wordle 1,028 4/6*~~⬛🟨⬛⬛⬛~⬛⬛🟩🟩⬛~⬛🟩🟩🟩⬛~🟩🟩🟩🟩🟩"
-                    }
+            "2024-04-14": {
+                "Connections": {
+                    "text": "Connections ~Puzzle #307~🟩🟩🟩🟩~🟦🟦🟦🟦~🟪🟨🟨🟨~🟪🟨🟨🟨~🟨🟨🟨🟨~🟪🟪🟪🟪",
+                    "comment": ""
+                },
+                "Wordle": {
+                    "text": "Wordle 1,030 3/6*~~⬛⬛⬛⬛⬛~🟨⬛🟩⬛⬛~🟩🟩🟩🟩🟩",
+                    "comment": "bullshit"
+                },
+                "Bandle": {
+                    "text": "Bandle #606 5/6~⬛⬛⬛🟨🟩⬜~",
+                    "comment": "sucks"
+                },
+                "Costcodle": {
+                    "text": "Costcodle #207 5/6~⬇️🟥~⬇️🟨~⬆️🟥~⬆️🟨~✅~",
+                    "comment": ""
                 }
             }
         },
         "friends": [
-            "HuU0GP49KNy1uPv"
+            "OSZVC7uqzc69d94",
+            "OSZVC7uqzc69d93",
+            "OSZVC7uqzc69d92",
+            "OSZVC7uqzc69d91",
+            "2WqfUIMiFm7ySmo",
+            "4Y5sdnVHhLir3UU"
         ]
     },
     {
         "name": "Angel",
-        "private": "2FgCdFl3m5hyVL6",
-        "public": "HuU0GP49KNy1uPv",
+        "private": "Pw5ta04HfTSmJxZ",
+        "public": "2WqfUIMiFm7ySmo",
         "dates": {
-            "2024-04-12": {
-                "games": {
-                    "Wordle": {
-                        "text": "Wordle 1,028 4/6~~⬜⬜🟩⬜⬜~⬜⬜🟩🟩⬜~⬜⬜🟩🟩⬜~🟩🟩🟩🟩🟩~"
-                    }
+            "2024-04-14": {
+                "Wordle": {
+                    "text": "Wordle 1,030 4/6~~⬜🟩⬜⬜⬜~⬜🟩⬜⬜⬜~🟩🟩🟩⬜⬜~🟩🟩🟩🟩🟩",
+                    "comment": "bullshit"
+                },
+                "Connections": {
+                    "text": "Connections ~Puzzle #308~🟩🟪🟩🟩~🟩🟪🟩🟩~🟨🟨🟨🟨~🟦🟦🟦🟦~🟪🟩🟪🟪~🟪🟪🟪🟩",
+                    "comment": ""
+                },
+                "Strands": {
+                    "text": "Strands #42~“Join the club!”~🟡🔵🔵🔵~🔵🔵🔵",
+                    "comment": ""
+                },
+                "Bandle": {
+                    "text": "Bandle #606 3/6~⬛⬛🟩⬜⬜⬜~",
+                    "comment": "Got it in 3, get fucked"
+                },
+                "Costcodle": {
+                    "text": "Costcodle #207 6/6~⬇️🟥~⬇️🟥~⬇️🟥~⬆️🟨~⬇️🟨~✅~",
+                    "comment": "I hate this one "
                 }
             }
         },
         "friends": [
-            "HsU56yO3crvfGOa"
+            "OSZVC7uqzc69d9R"
+        ]
+    },
+    {
+        "name": "Sadie Mae Knox",
+        "private": "KftpKm94lPniTXV",
+        "public": "8lm82JafIMEXuX0",
+        "dates": {
+            "2024-04-14": {
+                "Wordle": {
+                    "text": "Wordle 1,030 4/6~~🟩⬜🟩⬜⬜~🟨⬜🟩⬜⬜~⬜⬜⬜⬜⬜~🟩🟩🟩🟩🟩",
+                    "comment": ""
+                }
+            }
+        },
+        "friends": [
+            "OSZVC7uqzc69d9R"
+        ]
+    },
+    {
+        "name": "Max",
+        "private": "4Y5sdnVHhLir3UU",
+        "public": "jigJ8988PhgDAe8",
+        "dates": {
+            "2024-04-14": {
+                "Wordle": {
+                    "text": "Wordle 1,030 1/6~~🟩🟩🟩🟩🟩",
+                    "comment": ""
+                }
+            }
+        },
+        "friends": [
+            "OSZVC7uqzc69d9R"
         ]
     }
 ]

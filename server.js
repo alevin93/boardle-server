@@ -14,7 +14,7 @@ app.use(express.json());
 
 
 app.post('/submit', (req, res) => {
-  let errorflag = handleSubmission(req.body.user, req.body.data)
+  let errorflag = handleSubmission(req.body.user, req.body.data, req.body.comment)
   
   if(errorflag) {
     return res.send({ data: "You already sent that game!"})
@@ -40,9 +40,45 @@ app.post('/restoreUser', (req, res) => {
 
     return res.json(player);
 
-    
+  })
+})
+
+app.post('/addFriend', (req, res) => {
+  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
+    if(err) {
+      console.error("Error reading file:", err);
+      return res.status(500);
+    }
+    try {
+      const existingData = JSON.parse(jsonString);
+
+      // Find the matching player
+      const playerIndex = existingData.findIndex(entry => entry.private === req.body.user);
+
+      if (playerIndex === -1) {
+        return res.status(404).json({ error: 'Player not found' }); 
+      }
+
+      let newData = existingData[playerIndex];
+
+      existingData[playerIndex].friends.push(req.body.friend);
+
+
+
+      fs.writeFile('./data.json', JSON.stringify(existingData), (err) => {
+        if(err) {
+          console.error("Error writing file:", err);
+          return res.status(500);
+        }
+      })
+    } catch(err) {
+      console.error('Error parsing JSON: ', err);
+      return res.status(500);
+    }
 
   })
+  // TO DO CREATE DATABASE ENTRY HERE
+  return res.sendStatus(200);
 })
   
 app.post('/createUser', (req, res) => {
@@ -117,8 +153,6 @@ app.post('/getFriendsData', (req, res) => {
         }
       });
 
-
-      console.log(friendsArray); 
       res.json(JSON.stringify(friendsArray));
 
     } catch (err) {
@@ -132,7 +166,7 @@ app.listen(port, () => {
   console.log(`Backend listening on port ${port}`)
 })
 
-const handleSubmission = async (user, data) => {
+const handleSubmission = async (user, data, comment) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
 
     const existingData = JSON.parse(jsonString);
@@ -144,9 +178,22 @@ const handleSubmission = async (user, data) => {
     if (playerIndex !== -1) {
       const player = existingData[playerIndex]; // Get a reference to the player
 
+
+      
+
       // Your game and date logic
       const date = getDate();
       const gameName = findGameName(data);
+
+
+      if(gameName == "Bandle") {
+        data = bandleTrim(data);
+      }
+      if(gameName == "Costcodle") {
+        data = costcodleTrim(data);
+      }
+
+
       const formatted = formatGame(data);
 
       if (gameName === null) {
@@ -158,12 +205,20 @@ const handleSubmission = async (user, data) => {
       }
     
       if (!player.dates[date]) { // Check if the date key exists
-        player.dates[date] = { games: {} }; 
+        player.dates[date] = {}; 
       }
+
+
     
-      player.dates[date].games[gameName] = { 
+      player.dates[date][gameName] = { 
         text: formatted // Assuming you meant 'text' instead of 'test'
-      }; 
+      };
+
+      if(comment != '') {
+        player.dates[date][gameName].comment = comment;
+      } else {
+        player.dates[date][gameName].comment = '';
+      }
     
 
       // Replace the old player with the updated one
@@ -203,6 +258,8 @@ function getDate() {
 }
 
 function findGameName(data) {
+  
+  data = data.replace(/^\s+|[^\w\s]+/g, "")
   const index = data.indexOf(' ');
 
   if (index === -1) { //no space found
@@ -212,9 +269,24 @@ function findGameName(data) {
 }
 
 function formatGame(data) {
+
   return data.replace(/\n/g, "~");
 }
 
-function tokenizeData(data) {
+function bandleTrim(str) {
+  const index = str.indexOf('F');  // Find the index of the first 'F'
+   if (index !== -1) {  // If 'F' is found
+       return str.substring(0, index); // Return the portion before 'F'
+   } else {
+       return str; // If 'F' is not found, return the original string
+   }
+}
 
+function costcodleTrim(str) {
+  const index = str.indexOf('h');  // Find the index of the first 'F'
+   if (index !== -1) {  // If 'F' is found
+       return str.substring(0, index); // Return the portion before 'F'
+   } else {
+       return str; // If 'F' is not found, return the original string
+   }
 }
