@@ -11,7 +11,9 @@ app.use(cors(corsOptions));
 app.use(express.json());
 //connectDB();
 
-
+app.get('/check', (req, res) => {
+  res.send("Connection working!").status(200);
+})
 
 app.post('/submit', (req, res) => {
   let errorflag = handleSubmission(req.body.user, req.body.data, req.body.comment)
