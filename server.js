@@ -51,7 +51,7 @@ app.get('/getdata/54321', (req, res) => {
     const existingData = JSON.parse(jsonString);
     return res.json(existingData);
    })
-}
+})
 
 app.post('/addFriend', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
