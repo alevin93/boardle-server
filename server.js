@@ -1,13 +1,19 @@
 const express = require('express');
+require("dotenv").config()
 const corsOptions = require('./corsOptions');
 const fs = require('fs');
 const path = require('path');
-const port = 5500;
+const port = process.env.PORT;
+const db = require('./db');
 const cors = require('cors');
+const mysql = require('mysql2');
 
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+
+
+
 //connectDB();
 
 app.get('/check', (req, res) => {
@@ -90,48 +96,33 @@ app.post('/addFriend', (req, res) => {
   return res.sendStatus(200);
 })
   
-app.post('/createUser', (req, res) => {
+app.post('/createUser', async (req, res) => {
   console.log("Create new user has been run");
   console.log(req.body.name)
-  let newData = {
-    name : req.body.name,
-    private : generateKey(15),
-    public : generateKey(15),
-    dates : null,
-    friends: [],
-  }
-  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
-    if(err) {
-      console.error("Error reading file:", err);
-      return res.status(500);
-    }
-    try {
-      const existingData = JSON.parse(jsonString);
+  const newData = {
+      name: req.body.name,
+      private: generateKey(15),
+      public: generateKey(15)
+  };
 
-      const hasDuplicate = existingData.some( entry => entry.private === newData.private || entry.public === newData.public)
+  try {
+      const result = db.query(
+          'INSERT INTO users (name, private, public) VALUES (?, ?, ?)',
+          [newData.name, newData.private, newData.public]
+      );
 
-      if(hasDuplicate) {
-        return res.status(500);
+      const userId = result.insertId; // Get the newly inserted user's ID
+
+      res.json({ id: userId }); // Return the ID of the new user
+  } catch (err) {
+      console.error("Error creating user:", err);
+      if (err.code === 'ER_DUP_ENTRY') { // Handle unique constraint errors
+          res.status(500).json({ error: 'User with that key already exists' });
+      } else {
+          res.sendStatus(500); 
       }
-
-      const updatedData = [...existingData, newData];
-
-      fs.writeFile('./data.json', JSON.stringify(updatedData), (err) => {
-        if(err) {
-          console.error("Error writing file:", err);
-          return res.status(500);
-        }
-        console.log('Data appended successfully');
-      })
-    } catch(err) {
-      console.error('Error parsing JSON: ', err);
-      return res.status(500);
-    }
-
-  })
-  // TO DO CREATE DATABASE ENTRY HERE
-  return res.json(newData);
-})
+  }
+});
 
 app.post('/getFriendsData', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
