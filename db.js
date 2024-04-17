@@ -1,19 +1,18 @@
-const mongoose = require('mongoose');
-require('dotenv').config();
+const mysql = require('mysql2');
+require("dotenv").config();
 
-const connectDB = async () => {
-    try {
-        const conn = await mongoose.connect(process.env.MONGO_URI, {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
+const pool = mysql.createPool({ // Using a pool is usually better for performance
+  connectionLimit: 50, // Limit the number of concurrent connections
+  host: process.env.DATABASE_HOST,    // Your database host
+  user: process.env.DATABASE_USER, // Your database user
+  password: process.env.DATABASE_PASS,  // Your database password
+  database: process.env.DATABASE_NAME    // Name of your database
+});
 
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
-    } catch (err) {
-        console.error(err);
-        process.exit(1);
-    }
-    console.log("Database connected!");
-}
+// Test connection: Example usage: 
+pool.query('SELECT 1 + 1 AS solution', (error, results) => {
+  if (error) throw error;
+  console.log('Database connected:', results[0].solution); // Should output 2
+});
 
-module.exports = connectDB;
+module.exports = pool; 
