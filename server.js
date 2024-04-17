@@ -28,6 +28,8 @@ app.post('/restoreUser', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
 
     const existingData = JSON.parse(jsonString);
+
+    console.log("Looking for: " + req.body.user);
     
     // Find the index of the matching player
     const playerIndex = existingData.findIndex(entry => entry.private === req.body.user);
@@ -35,9 +37,6 @@ app.post('/restoreUser', (req, res) => {
     // Check if the player was found
     
     const player = existingData[playerIndex]; // Get a reference to the player
-
-
-    console.log("Restored the account of " + player.name);
 
     return res.json(player);
 
@@ -69,6 +68,23 @@ app.post('/addFriend', (req, res) => {
       }
 
       let newData = existingData[playerIndex];
+
+      for(let x = 0; x < existingData[playerIndex].friends.length; x++) {
+        if(existingData[playerIndex].friends[x] === req.body.friend) {
+          return res.send("You already have that friend!").status(200);
+        }
+      }
+      let playerFoundFlag = false;
+
+      for(let x = 0; x < existingData.length; x++) {
+        if(existingData[x].public === req.body.friend) {
+          playerFoundFlag = true;
+        }
+      }
+
+      if(!playerFoundFlag) {
+        return res.send("Friend not found!").status(200);
+      }
 
       existingData[playerIndex].friends.push(req.body.friend);
 
@@ -146,7 +162,11 @@ app.post('/getFriendsData', (req, res) => {
       // Find the matching player
       const playerIndex = existingData.findIndex(entry => entry.private === req.body.user);
 
+      
+      console.log("Player is: " + req.body.user)
+
       if (playerIndex === -1) {
+        console.log("Cannot find this player!")
         return res.status(404).json({ error: 'Player not found' }); 
       }
       let friendsArray = [existingData[playerIndex]];
