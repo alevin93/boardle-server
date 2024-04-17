@@ -2,9 +2,8 @@ const express = require('express');
 const corsOptions = require('./corsOptions');
 const fs = require('fs');
 const path = require('path');
-const port = 4000;
+const port = 5500;
 const cors = require('cors');
-const connectDB = require('./db');
 
 const app = express();
 app.use(cors(corsOptions));
@@ -51,7 +50,7 @@ app.get('/getdata/54321', (req, res) => {
     const existingData = JSON.parse(jsonString);
     return res.json(existingData);
    })
-}
+})
 
 app.post('/addFriend', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
