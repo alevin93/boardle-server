@@ -1,10 +1,4 @@
 [
-    
-    {
-        "name": "PLACEHOLDER",
-        "private": "idk",
-        "public": "idk"
-    },
     {
         "name": "Alex",
         "private": "G1vQjB3wFy1Acgx",
@@ -59,12 +53,28 @@
                     "text": "Costcodle #209 3/6~⬆️🟨~⬇️🟨~✅~ ",
                     "comment": ""
                 }
+            },
+            "2024-04-17": {
+                "Wordle": {
+                    "text": "Wordle 1,033 4/6*~~⬛⬛⬛⬛🟩~⬛⬛⬛⬛🟩~⬛⬛🟨🟨🟩~🟩🟩🟩🟩🟩",
+                    "comment": ""
+                },
+                "Connections": {
+                    "text": "Connections ~Puzzle #311~🟨🟨🟨🟨~🟩🟦🟩🟪~🟩🟦🟩🟦~🟩🟩🟦🟩~🟩🟦🟩🟦",
+                    "comment": ""
+                },
+                "Strands": {
+                    "text": "Strands #45~“The long run”~🟡🔵🔵🔵~🔵🔵🔵🔵",
+                    "comment": "This one sucked"
+                }
             }
         },
         "friends": [
             "2WqfUIMiFm7ySmo",
             "XvweHHox76fAfDx",
-            "gvyTXjPSJCg7uyE"
+            "gvyTXjPSJCg7uyE",
+            "VFDZ6jXBsHSWZbA",
+            "9IOLdXpxk9hZcFK"
         ]
     },
     {
@@ -100,7 +110,7 @@
                     "comment": "That’s what she said"
                 },
                 "Connections": {
-                    "text": "Connections ~Puzzle #310~🟪🟪🟪🟪~🟩🟩🟩🟩~🟦🟨🟦🟦~🟨🟦🟨🟨~🟨🟨🟦🟨~🟨🟨🟨🟨~🟦🟦🟦🟦",
+                    "text": "Connections ~Puzzle #310~🟪🟪🟪🟪~🟩🟩🟩🟩~🟦🟨🟦🟦~🟨🟦🟨��~🟨🟨🟦���~🟨🟨🟨🟨~🟦🟦🟦🟦",
                     "comment": "I’m flabbergasted "
                 },
                 "Bandle": {
@@ -115,10 +125,22 @@
                     "text": "Costcodle #209 4/6~⬆️🟥~⬆️🟨~⬆️🟨~✅~",
                     "comment": ""
                 }
+            },
+            "2024-04-17": {
+                "Wordle": {
+                    "text": "Wordle 1,033 4/6~~⬜⬜⬜🟨🟩~🟩🟨🟨🟨⬜~🟩🟩⬜⬜🟩~🟩🟩🟩🟩🟩",
+                    "comment": "Oooof"
+                },
+                "Connections": {
+                    "text": "Connections ~Puzzle #311~🟪🟪🟪🟪~🟦🟦🟦🟦~🟨🟨🟨🟨~🟩🟩🟩🟩",
+                    "comment": ""
+                }
             }
         },
         "friends": [
-            "OSZVC7uqzc69d9R"
+            "OSZVC7uqzc69d9R",
+            "9IOLdXpxk9hZcFK",
+            "VFDZ6jXBsHSWZbA"
         ]
     },
     {
@@ -203,16 +225,35 @@
         "public": "I5BoBLSsP0i9amG",
         "dates": null,
         "friends": [
-            "OSZVC7uqzc69d9R",
-            "OSZVC7uqzc69d9R"
+            "2WqfUIMiFm7ySmo"
         ]
     },
     {
         "name": "Butthole",
         "private": "X1LikrmWDwBffal",
         "public": "VFDZ6jXBsHSWZbA",
-        "dates": null,
-        "friends": []
+        "dates": {
+            "2024-04-17": {
+                "Connections": {
+                    "text": "Connections ~Puzzle #311~🟪🟪🟪🟪~🟦🟦🟦🟦~🟨🟨🟨🟨~🟩🟩🟩🟩",
+                    "comment": ""
+                },
+                "Strands": {
+                    "text": "Strands #45~“The long run”~🟡🔵🔵🔵~🔵🔵🔵🔵",
+                    "comment": ""
+                },
+                "Wordle": {
+                    "text": "Wordle 1,033 4/6~~⬜⬜⬜⬜⬜~🟩🟨⬜⬜🟨~🟩🟨⬜⬜🟩~🟩🟩🟩🟩🟩",
+                    "comment": ""
+                }
+            }
+        },
+        "friends": [
+            "2WqfUIMiFm7ySmo",
+            "2WqfUIMiFm7ySmo",
+            "OSZVC7uqzc69d9R",
+            "9IOLdXpxk9hZcFK"
+        ]
     },
     {
         "name": "Michelle ",
@@ -228,6 +269,70 @@
         "dates": null,
         "friends": [
             "OSZVC7uqzc69d9R",
+            "OSZVC7uqzc69d9R"
+        ]
+    },
+    {
+        "name": "",
+        "private": "p6mSEOax6DHGJVo",
+        "public": "iVGo9yzuWqJIRY5",
+        "dates": {
+            "2024-04-17": {
+                "Connections": {
+                    "text": "Connections ~Puzzle #311~🟪🟪🟪🟪~🟦🟦🟦🟦~🟩🟩🟩🟩~🟨🟨🟨🟨",
+                    "comment": ""
+                }
+            }
+        },
+        "friends": [
+            "iVGo9yzuWqJIRY5"
+        ]
+    },
+    {
+        "name": "Silamoc",
+        "private": "XI3MGA94fdg6k3A",
+        "public": "9IOLdXpxk9hZcFK",
+        "dates": {
+            "2024-04-17": {
+                "Connections": {
+                    "text": "Connections ~Puzzle #311~🟨🟦🟨🟨~🟦🟨🟨🟨~🟨🟨🟨🟨~🟦🟦🟦🟦~🟪🟪🟪🟪~🟩🟩🟩🟩",
+                    "comment": ""
+                },
+                "Wordle": {
+                    "text": "Wordle 1,033 4/6~~⬜⬜⬜🟨⬜~⬜🟩⬜⬜🟨~⬜🟩🟩🟩🟩~🟩🟩🟩🟩🟩",
+                    "comment": ""
+                },
+                "Strands": {
+                    "text": "Strands #45~“The long run”~🟡🔵🔵🔵~🔵🔵🔵💡~🔵",
+                    "comment": ""
+                }
+            }
+        },
+        "friends": [
+            "OSZVC7uqzc69d9R",
+            "VFDZ6jXBsHSWZbA"
+        ]
+    },
+    {
+        "name": "Michelle ",
+        "private": "dJyLdA6RXE6X6OR",
+        "public": "5tywv1omHZpzT7d",
+        "dates": null,
+        "friends": []
+    },
+    {
+        "name": "Crystal ",
+        "private": "LUw41CZXKcsUnJI",
+        "public": "vx7V1SbVZrKXrTm",
+        "dates": {
+            "2024-04-17": {
+                "Wordle": {
+                    "text": "Wordle 1,033 1/6*~~🟩🟩🟩🟩🟩",
+                    "comment": ""
+                }
+            }
+        },
+        "friends": [
             "OSZVC7uqzc69d9R"
         ]
     }

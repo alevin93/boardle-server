@@ -1,28 +1,34 @@
 const express = require('express');
+require("dotenv").config()
 const corsOptions = require('./corsOptions');
 const fs = require('fs');
 const path = require('path');
-const port = 5500;
+const port = process.env.PORT;
+const db = require('./db');
 const cors = require('cors');
+const mysql = require('mysql2');
 
 const app = express();
 app.use(cors(corsOptions));
 app.use(express.json());
+
+
+
 //connectDB();
 
 app.get('/check', (req, res) => {
   res.send("Connection working!").status(200);
 })
 
-app.post('/submit', (req, res) => {
-  let errorflag = handleSubmission(req.body.user, req.body.data, req.body.comment)
-  
-  if(errorflag) {
-    return res.send({ data: "You already sent that game!"})
+app.post('/submit', async (req, res) => {
+  let errorflag = await handleSubmission(req.body.user, req.body.data, req.body.comment);
+
+  if (errorflag) {
+      return res.send({ data: "You already sent that game!" });
   }
-  
+
   res.sendStatus(200);
-})
+});
 
 app.post('/restoreUser', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
@@ -106,48 +112,36 @@ app.post('/addFriend', (req, res) => {
   return res.sendStatus(200);
 })
   
-app.post('/createUser', (req, res) => {
+app.post('/createUser', async (req, res) => {
   console.log("Create new user has been run");
-  console.log(req.body.name)
-  let newData = {
-    name : req.body.name,
-    private : generateKey(15),
-    public : generateKey(15),
-    dates : null,
-    friends: [],
-  }
-  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
-    if(err) {
-      console.error("Error reading file:", err);
-      return res.status(500);
-    }
-    try {
-      const existingData = JSON.parse(jsonString);
+  let private = generateKey(15)
+  let public = generateKey(9)
+  const newData = {
+      name: req.body.name,
+      private: private,
+      public: public,
+      friends: []
+  };
 
-      const hasDuplicate = existingData.some( entry => entry.private === newData.private || entry.public === newData.public)
+  try {
+      const result = db.query(
+          'INSERT INTO users (name, private, public) VALUES (?, ?, ?)',
+          [newData.name, newData.private, newData.public]
+      );
 
-      if(hasDuplicate) {
-        return res.status(500);
+      const userId = result.insertId; // Get the newly inserted user's ID
+      console.log(result);
+
+      res.json({ private: private, public: public }); // Return the ID of the new user
+  } catch (err) {
+      console.error("Error creating user:", err);
+      if (err.code === 'ER_DUP_ENTRY') { // Handle unique constraint errors
+          res.status(500).json({ error: 'User with that key already exists' });
+      } else {
+          res.sendStatus(500); 
       }
-
-      const updatedData = [...existingData, newData];
-
-      fs.writeFile('./data.json', JSON.stringify(updatedData), (err) => {
-        if(err) {
-          console.error("Error writing file:", err);
-          return res.status(500);
-        }
-        console.log('Data appended successfully');
-      })
-    } catch(err) {
-      console.error('Error parsing JSON: ', err);
-      return res.status(500);
-    }
-
-  })
-  // TO DO CREATE DATABASE ENTRY HERE
-  return res.json(newData);
-})
+  }
+});
 
 app.post('/getFriendsData', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
@@ -162,11 +156,8 @@ app.post('/getFriendsData', (req, res) => {
       // Find the matching player
       const playerIndex = existingData.findIndex(entry => entry.private === req.body.user);
 
-      
-      console.log("Player is: " + req.body.user)
 
       if (playerIndex === -1) {
-        console.log("Cannot find this player!")
         return res.status(404).json({ error: 'Player not found' }); 
       }
       let friendsArray = [existingData[playerIndex]];
@@ -196,76 +187,41 @@ app.listen(port, () => {
 })
 
 const handleSubmission = async (user, data, comment) => {
-  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
+  // 1. Retrieve the User's ID
 
-    const existingData = JSON.parse(jsonString);
-
-    // Find the index of the matching player
-    const playerIndex = existingData.findIndex(entry => entry.private === user);
-
-    // Check if the player was found
-    if (playerIndex !== -1) {
-      const player = existingData[playerIndex]; // Get a reference to the player
-
-
-      
-
-      // Your game and date logic
-      const date = getDate();
-      const gameName = findGameName(data);
-
-
-      if(gameName == "Bandle") {
-        data = bandleTrim(data);
-      }
-      if(gameName == "Costcodle") {
-        data = costcodleTrim(data);
-      }
-
-
-      const formatted = formatGame(data);
-
-      if (gameName === null) {
-        return true;
-      }
-
-      if (player.dates == null) {
-        player.dates = {};  // Initialize the 'dates' object
-      }
-    
-      if (!player.dates[date]) { // Check if the date key exists
-        player.dates[date] = {}; 
-      }
-
-
-    
-      player.dates[date][gameName] = { 
-        text: formatted // Assuming you meant 'text' instead of 'test'
-      };
-
-      if(comment != '') {
-        player.dates[date][gameName].comment = comment;
-      } else {
-        player.dates[date][gameName].comment = '';
-      }
-    
-
-      // Replace the old player with the updated one
-      existingData[playerIndex] = player;
-
-      // Write the modified data back to the file
-      fs.writeFile('./data.json', JSON.stringify(existingData), (err) => {
-        // ...
-      });
-
-    } else {
-      // Handle the case where the player wasn't found
+  if (user === null) {
       console.log("Player not found.");
-    }
+      return true; 
+  }
 
-    return false;
-  });
-}
+  // 2. Your game and date logic 
+  const date = getDate();
+  const gameName = findGameName(data);
+  const formatted = formatGame(data);
+
+  const existingGame = db.query(
+    'SELECT id FROM games WHERE user_id = ? AND date = ? AND game_name = ?',
+    [user, date, gameName]
+  );
+
+  if(comment === "" || comment === null) {
+    comment = "";
+  }
+  
+  if (existingGame.length > 0) {
+    return true;
+  }
+
+  console.log(user, date, gameName, formatted, comment)
+
+  // 3. Database Insertion
+  const query = 'INSERT INTO games (user_id, date, game_name, text, comment) VALUES (?, ?, ?, ?, ?)';
+  const result = db.query(query, [user, date, gameName, formatted, comment]);
+  const gameId = result.insertId;
+
+  console.log("HandleSubmissionFinished")
+  return false;
+};
 
 function generateKey(length) {
   var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
