@@ -134,6 +134,10 @@ app.post('/addFriend', async (req, res) => {
                           return res.status(400).json({ error: 'Friend name not found' });
                       }
 
+                      if (userResults[0].id === friendNameResult[0].id) {
+                        return res.status(400).json({ error: "No matter how lonely you are you can't add yourself as a friend"})
+                      }
+
                       const friendName = friendNameResult[0].name;
                       const friendId = friendNameResult[0].id;
 
