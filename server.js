@@ -20,15 +20,62 @@ app.get('/check', (req, res) => {
   res.send("Connection working!").status(200);
 })
 
-app.post('/submit', async (req, res) => {
-  let errorflag = await handleSubmission(req.body.user, req.body.data, req.body.comment);
+app.post('/submit', (req, res) => {
+  const { user, data, comment } = req.body; 
 
-  if (errorflag) {
-      return res.send({ data: "You already sent that game!" });
-  }
+  db.query('SELECT id FROM users WHERE private = ?', [user], (error, result) => {
+      if (error) {
+          console.error("Error fetching userId:", error);
+          return res.status(500).json({ error: "Internal server error" }); 
+      }
 
-  res.sendStatus(200);
+      if (result.length === 0) { 
+          console.log("Player not found.");
+          return res.send({ error: "Player not found" }); 
+      }
+
+      const userId = result[0].id; // Assuming 'id' is the column name
+
+      // ... Your game and date logic 
+      const date = getDate();
+      const gameName = findGameName(data);
+      const formatted = formatGame(data);
+
+      if(comment == null) {
+          comment = "";
+      }
+
+      db.query( 
+          'SELECT id FROM games WHERE user_id = ? AND date = ? AND game_name = ?',
+          [userId, date, gameName],
+          (error, existingGameResult) => {
+              if (error) {
+                  console.error("Error checking existing game:", error);
+                  return res.status(500).json({ error: "Internal server error" }); 
+              }
+
+              if (existingGameResult.length > 0) {
+                  return res.send({ error: "You already sent that game!" });
+              }
+
+              // Database Insertion 
+              const query = 'INSERT INTO games (user_id, date, game_name, text, comment) VALUES (?, ?, ?, ?, ?)';
+              db.query(query, [userId, date, gameName, formatted, comment], (error, insertResult) => {
+                  if (error) {
+                      console.error("Error inserting game:", error);
+                      return res.status(500).json({ error: "Internal server error" }); 
+                  }
+
+                  const gameId = insertResult.insertId;
+                  console.log("Game inserted with ID:", gameId);
+                  res.sendStatus(200); // Or send the gameId back if needed
+              }); 
+          }
+      );
+  });
 });
+
+
 
 app.post('/restoreUser', (req, res) => {
   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
@@ -49,68 +96,135 @@ app.post('/restoreUser', (req, res) => {
   })
 })
 
-app.get('/getdata/54321', (req, res) => {
-   fs.readFile('./data.json', 'utf8', (err, jsonString) => {
+app.post('/addFriend', async (req, res) => {
+  const { user, friend } = req.body;
 
-    const existingData = JSON.parse(jsonString);
-    return res.json(existingData);
-   })
-})
+  try {
+      // ... (Friend existence check - This part can remain similar) ... 
 
-app.post('/addFriend', (req, res) => {
-  fs.readFile('./data.json', 'utf8', (err, jsonString) => {
-    if(err) {
-      console.error("Error reading file:", err);
-      return res.status(500);
-    }
-    try {
-      const existingData = JSON.parse(jsonString);
+      // 2. Retrieve Current User Data 
+      db.query(
+          'SELECT id, friends FROM users WHERE private = ?',
+          [user],
+          (error, userResult) => {
+              if (error) {
+                  console.error("Error fetching user data:", error);
+                  return res.status(500).json({ error: 'Internal server error' });
+              }
 
-      // Find the matching player
-      const playerIndex = existingData.findIndex(entry => entry.private === req.body.user);
+              if (userResult.length === 0) {
+                  return res.status(404).json({ error: 'Player not found' });
+              }
 
-      if (playerIndex === -1) {
-        return res.status(404).json({ error: 'Player not found' }); 
-      }
+              const userData = userResult[0];
 
-      let newData = existingData[playerIndex];
+              // ... (Duplicate Check) ...
 
-      for(let x = 0; x < existingData[playerIndex].friends.length; x++) {
-        if(existingData[playerIndex].friends[x] === req.body.friend) {
-          return res.send("You already have that friend!").status(200);
+              // 4. Fetch Friend's Name
+              db.query(
+                  'SELECT name, id FROM users WHERE public = ?',
+                  [friend],
+                  (error, friendNameResult) => {
+                      if (error) {
+                          console.error("Error fetching friend name:", error);
+                          return res.status(500).json({ error: 'Internal server error' }); 
+                      }
+
+                      if (friendNameResult.length === 0) {
+                          return res.status(400).json({ error: 'Friend name not found' });
+                      }
+
+                      const friendName = friendNameResult[0].name;
+                      const friendId = friendNameResult[0].id;
+
+                      for(let x = 0; x < userData.friends.length; x++) {
+                        if(userData.friends[x].id === friendId) {
+                          res.status(400).json({ error: 'You already have that friend!'})
+                        }
+                      }
+
+                      // 5. Update Friends Array
+                      userData.friends.push({ id: friendId, name: friendName });  
+
+                      // 6. Database Update 
+                      db.query(
+                          'UPDATE users SET friends = ? WHERE id = ?',
+                          [JSON.stringify(userData.friends), userData.id],
+                          (error, updateResult) => {
+                              if (error) {
+                                  console.error("Error updating friends:", error);
+                                  return res.status(500).json({ error: 'Internal server error' });
+                              }
+                          }
+                      ); 
+                  }
+              );
+          }
+      );
+      db.query(
+        'SELECT id, friends FROM users WHERE public = ?',
+        [friend],
+        (error, userResult) => {
+            if (error) {
+                console.error("Error fetching user data:", error);
+                return res.status(500).json({ error: 'Internal server error' });
+            }
+
+            if (userResult.length === 0) {
+                return res.status(404).json({ error: 'Player not found' });
+            }
+
+            const userData = userResult[0];
+
+            // ... (Duplicate Check) ...
+
+            // 4. Fetch Friend's Name
+            db.query(
+                'SELECT name, id FROM users WHERE private = ?',
+                [user],
+                (error, friendNameResult) => {
+                    if (error) {
+                        console.error("Error fetching friend name:", error);
+                        return res.status(500).json({ error: 'Internal server error' }); 
+                    }
+
+                    if (friendNameResult.length === 0) {
+                        return res.status(400).json({ error: 'Friend name not found' });
+                    }
+
+                    const friendName = friendNameResult[0].name;
+                    const friendId = friendNameResult[0].id;
+
+                    for(let x = 0; x < userData.friends.length; x++) {
+                      if(userData.friends[x].id === friendId) {
+                        res.status(400).json({ error: 'You already have that friend!'})
+                      }
+                    }
+
+                    // 5. Update Friends Array
+                    userData.friends.push({ id: friendId, name: friendName });  
+
+                    // 6. Database Update 
+                    db.query(
+                        'UPDATE users SET friends = ? WHERE id = ?',
+                        [JSON.stringify(userData.friends), userData.id],
+                        (error, updateResult) => {
+                            if (error) {
+                                console.error("Error updating friends:", error);
+                                return res.status(500).json({ error: 'Internal server error' });
+                            }
+                        }
+                    ); 
+                }
+            );
         }
-      }
-      let playerFoundFlag = false;
+    );
+  } catch (err) { 
+      console.error('Error adding friend:', err);
+      res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
-      for(let x = 0; x < existingData.length; x++) {
-        if(existingData[x].public === req.body.friend) {
-          playerFoundFlag = true;
-        }
-      }
-
-      if(!playerFoundFlag) {
-        return res.send("Friend not found!").status(200);
-      }
-
-      existingData[playerIndex].friends.push(req.body.friend);
-
-
-
-      fs.writeFile('./data.json', JSON.stringify(existingData), (err) => {
-        if(err) {
-          console.error("Error writing file:", err);
-          return res.status(500);
-        }
-      })
-    } catch(err) {
-      console.error('Error parsing JSON: ', err);
-      return res.status(500);
-    }
-
-  })
-  // TO DO CREATE DATABASE ENTRY HERE
-  return res.sendStatus(200);
-})
   
 app.post('/createUser', async (req, res) => {
   console.log("Create new user has been run");
@@ -125,8 +239,8 @@ app.post('/createUser', async (req, res) => {
 
   try {
       const result = db.query(
-          'INSERT INTO users (name, private, public) VALUES (?, ?, ?)',
-          [newData.name, newData.private, newData.public]
+          'INSERT INTO users (name, private, public, friends) VALUES (?, ?, ?, JSON_ARRAY())',
+          [newData.name, newData.private, newData.public, newData.friends]
       );
 
       const userId = result.insertId; // Get the newly inserted user's ID
@@ -186,42 +300,7 @@ app.listen(port, () => {
   console.log(`Backend listening on port ${port}`)
 })
 
-const handleSubmission = async (user, data, comment) => {
-  // 1. Retrieve the User's ID
 
-  if (user === null) {
-      console.log("Player not found.");
-      return true; 
-  }
-
-  // 2. Your game and date logic 
-  const date = getDate();
-  const gameName = findGameName(data);
-  const formatted = formatGame(data);
-
-  const existingGame = db.query(
-    'SELECT id FROM games WHERE user_id = ? AND date = ? AND game_name = ?',
-    [user, date, gameName]
-  );
-
-  if(comment === "" || comment === null) {
-    comment = "";
-  }
-  
-  if (existingGame.length > 0) {
-    return true;
-  }
-
-  console.log(user, date, gameName, formatted, comment)
-
-  // 3. Database Insertion
-  const query = 'INSERT INTO games (user_id, date, game_name, text, comment) VALUES (?, ?, ?, ?, ?)';
-  const result = db.query(query, [user, date, gameName, formatted, comment]);
-  const gameId = result.insertId;
-
-  console.log("HandleSubmissionFinished")
-  return false;
-};
 
 function generateKey(length) {
   var characters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
