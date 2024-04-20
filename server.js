@@ -77,22 +77,28 @@ app.post('/submit', (req, res) => {
 
 
 
-app.post('/restoreplayer', async (req, res) => {
-  const { user: privateKey } = req.body;
+app.post('/restoreUser', async (req, res) => {
+  const user = req.body.user;
+
+  console.log("RESTORE USER IS: ", user)
 
   try {
       // 1. Check if user exists
-      const userResult = db.query('SELECT private, public, name FROM users WHERE private = ?', [privateKey]);
+      db.query('SELECT private, public, name FROM users WHERE private = ?', [user], (error, userResult) => {
 
-      if (userResult.length === 0) {
+        if (userResult.length === 0) {
           return res.status(404).json({ error: 'User not found' }); 
       }
 
       // 2. Extract relevant data
-      const { private, public, name } = userResult[0];  
+      const private = userResult[0].private;
+      const public = userResult[0].public;
+      const name = userResult[0].name  
 
       // 3. Send successful response
-      res.json({ privateKey: private, publicKey: public, name }); 
+      res.json(JSON.stringify({ private: private, public: public, name: name })); 
+
+      });
 
   } catch (err) {
       console.error('Error restoring player:', err);
@@ -210,6 +216,8 @@ app.post('/getfriendsdata', async (req, res) => {
   const user = req.body.user;
   const date = req.body.date; 
 
+  console.log("GETFRIENDSDATA USER IS: ", user);
+
   try {
       // 1. Fetch User's Friends and ID
 
@@ -228,26 +236,17 @@ app.post('/getfriendsdata', async (req, res) => {
 
         const userId = userResult[0].id;
         const friendIds = userResult[0].friends.map((friend) => friend.id);
+        
+        friendIds.unshift(userId);
 
+        console.log(friendIds)
+        console.log(userId)
         // 2. Combined Game Data Query (Union)
-        const friendGamesQuery = `
-            SELECT g.gameName, g.text, g.comment, g.player
-            FROM games g
-            WHERE g.user_id IN (?) AND g.date = ?
-        `;
+        const friendGamesQuery = `SELECT gameName, text, comment, player FROM games WHERE user_id IN (?) AND date = ?`;
 
-        const userGamesQuery = `
-            SELECT g.gameName, g.text, g.comment, g.player
-            FROM games g
-            WHERE g.user_id = ? AND g.date = ?
-        `;
-
-
-        // Combine queries with UNION ALL
-        const combinedQuery = `${friendGamesQuery} UNION ALL ${userGamesQuery}`;
 
         // Execute the combined query
-        db.query(combinedQuery, [friendIds, date, userId, date],  (error, results) => {
+        db.query(friendGamesQuery, [friendIds, date, userId, date],  (error, results) => {
           if (error) { 
               console.log(error)
           } else {
