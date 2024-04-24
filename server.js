@@ -299,7 +299,7 @@ function getDate() {
   const adjustedDate = new Date(adjustedTimestamp);
   const year = adjustedDate.getUTCFullYear();
   const month = adjustedDate.getUTCMonth(); // Zero-indexed (0 = January, etc.)
-  const day = adjustedDate.getUTCDate() + 1;
+  const day = adjustedDate.getUTCDate();
 
   // 5. Construct a new Date object with only the date:
   const dateOnly = new Date(Date.UTC(year, month, day));
