@@ -21,7 +21,11 @@ app.get('/check', (req, res) => {
 })
 
 app.post('/submit', (req, res) => {
-  const { user, data, comment } = req.body; 
+  const { user, data, comment } = req.body;
+
+  if (data === "" || '') {
+    return res.send(400).json({ error : "Cannot be blank!" })
+  }
 
   db.query('SELECT id, name FROM users WHERE private = ?', [user], (error, result) => {
       if (error) {
@@ -281,13 +285,26 @@ function generateKey(length) {
 }
 
 function getDate() {
-  let currentDate = new Date();
-  let year = currentDate.getFullYear();
-  let month = currentDate.getMonth() + 1; // Months are 0-indexed
-  if(month < 10) { month = `0${month}`}
-  let day = currentDate.getDate();
-  let formattedDate = `${year}-${month}-${day}`; 
-  return(formattedDate)
+  // 1. Get the current UTC date and time
+  const timezoneOffsetHours = -7;
+  const currentDate = new Date(); 
+
+  // 2. Get the timezone offset in minutes:
+  const timezoneOffsetMinutes = timezoneOffsetHours * 60;
+
+  // 3. Adjust the timestamp with the offset:
+  const adjustedTimestamp = currentDate.getTime() + (timezoneOffsetMinutes * 60 * 1000);
+
+  // 4. Create a new Date object and extract date components:
+  const adjustedDate = new Date(adjustedTimestamp);
+  const year = adjustedDate.getUTCFullYear();
+  const month = adjustedDate.getUTCMonth(); // Zero-indexed (0 = January, etc.)
+  const day = adjustedDate.getUTCDate() + 1;
+
+  // 5. Construct a new Date object with only the date:
+  const dateOnly = new Date(Date.UTC(year, month, day));
+
+  return dateOnly;
 }
 
 function findGameName(data) {
