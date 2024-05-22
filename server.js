@@ -21,7 +21,7 @@ app.get('/check', (req, res) => {
 })
 
 app.post('/submit', (req, res) => {
-  const { user, data, comment } = req.body;
+  const { user, data, date, comment } = req.body;
 
   if (data === "" || '') {
     return res.send(400).json({ error : "Cannot be blank!" })
@@ -38,10 +38,8 @@ app.post('/submit', (req, res) => {
           return res.send({ error: "Player not found" }); 
       }
 
-      const userId = result[0].id; // Assuming 'id' is the column name
-      const name = result[0].name
-      // ... Your game and date logic 
-      const date = getDate();
+      const userId = result[0].id; 
+      const name = result[0].name;
       const gameName = findGameName(data);
       const formatted = formatGame(data, gameName);
 
@@ -71,7 +69,6 @@ app.post('/submit', (req, res) => {
                   }
 
                   const gameId = insertResult.insertId;
-                  console.log("Game inserted with ID:", gameId);
                   res.sendStatus(200); // Or send the gameId back if needed
               }); 
           }
@@ -83,8 +80,6 @@ app.post('/submit', (req, res) => {
 
 app.post('/restoreUser', async (req, res) => {
   const user = req.body.user;
-
-  console.log("RESTORE USER IS: ", user)
 
   try {
       // 1. Check if user exists
@@ -186,7 +181,6 @@ function updateFriends(userId, friendId, userName, friendName, callback) {
 
   
 app.post('/createUser', async (req, res) => {
-  console.log("Create new user has been run");
   let private = generateKey(15)
   let public = generateKey(9)
   const newData = {
@@ -203,7 +197,6 @@ app.post('/createUser', async (req, res) => {
       );
 
       const userId = result.insertId; // Get the newly inserted user's ID
-      console.log(result);
 
       res.json({ private: private, public: public }); // Return the ID of the new user
   } catch (err) {
@@ -218,9 +211,8 @@ app.post('/createUser', async (req, res) => {
 
 app.post('/getfriendsdata', async (req, res) => {
   const user = req.body.user;
-  const date = req.body.date; 
-
-  console.log("GETFRIENDSDATA USER IS: ", user);
+  const date = req.body.date;
+  if(date === "NaN-NaN-NaN") { return; }
 
   try {
       // 1. Fetch User's Friends and ID
@@ -243,8 +235,6 @@ app.post('/getfriendsdata', async (req, res) => {
         
         friendIds.unshift(userId);
 
-        console.log(friendIds)
-        console.log(userId)
         // 2. Combined Game Data Query (Union)
         const friendGamesQuery = `SELECT gameName, text, comment, player FROM games WHERE user_id IN (?) AND date = ?`;
 
@@ -255,7 +245,6 @@ app.post('/getfriendsdata', async (req, res) => {
               console.log(error)
           } else {
               const combinedResults = results; // Access results here
-              console.log(combinedResults, "\n\n\n")
               res.json(JSON.stringify(combinedResults));
           }
         });
@@ -284,30 +273,15 @@ function generateKey(length) {
   return result;
 }
 
-function getDate() {
-  // 1. Get the current UTC date and time
-  const timezoneOffsetHours = -7;
-  const currentDate = new Date(); 
-
-  // 2. Get the timezone offset in minutes:
-  const timezoneOffsetMinutes = timezoneOffsetHours * 60;
-
-  // 3. Adjust the timestamp with the offset:
-  const adjustedTimestamp = currentDate.getTime() + (timezoneOffsetMinutes * 60 * 1000);
-
-  // 4. Create a new Date object and extract date components:
-  const adjustedDate = new Date(adjustedTimestamp);
-  const year = adjustedDate.getUTCFullYear();
-  const month = adjustedDate.getUTCMonth(); // Zero-indexed (0 = January, etc.)
-  const day = adjustedDate.getUTCDate();
-
-  // 5. Construct a new Date object with only the date:
-  const dateOnly = new Date(Date.UTC(year, month, day));
-
-  return dateOnly;
-}
-
 function findGameName(data) {
+
+  if(data.includes("New York Times Mini")) {
+    return 'Mini Crossword';
+  }
+
+  if(data.includes('contexto.me')) {
+    return 'Contexto'
+  }
   
   data = data.replace(/^\s+|[^\w\s]+/g, "")
   const index = data.indexOf(' ');
@@ -326,6 +300,14 @@ function formatGame(data, name) {
 
   if (name === "Costcodle") {
     data = costcodleTrim(data);
+  }
+
+  if (name === 'Mini Crossword') {
+    data = miniTrim(data);
+  }
+
+  if (name === 'Contexto') {
+    data = contextoTrim(data);
   }
 
   return data.replace(/\n/g, "~");
@@ -347,4 +329,17 @@ function costcodleTrim(str) {
    } else {
        return str; // If 'F' is not found, return the original string
    }
+}
+
+function miniTrim(text) {
+  text = text.replace('I solved the ', '');
+  text = text.replace('New York Times Mini Crossword in ', '\n');
+  text = text.replace('!','');
+  return text;
+}
+
+function contextoTrim(text) {
+  text = text.replace("I played contexto.me", "Contexto");
+  text = text.replace("and got it in ", "\n");
+  return text;
 }
