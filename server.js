@@ -15,11 +15,11 @@ app.use(express.json());
 
 //connectDB();
 
-app.get('/check', (req, res) => {
+app.get('/api/check', (req, res) => {
   res.send("Connection working!").status(200);
 })
 
-app.post('/submit', (req, res) => {
+app.post('/api/submit', (req, res) => {
   const { user, data, comment } = req.body;
 
   if (data === "" || '') {
@@ -79,7 +79,7 @@ app.post('/submit', (req, res) => {
 
 
 
-app.post('/restoreUser', async (req, res) => {
+app.post('/api/restoreUser', async (req, res) => {
   const user = req.body.user;
 
   try {
@@ -106,7 +106,7 @@ app.post('/restoreUser', async (req, res) => {
   }
 });
 
-app.post('/linkFriends', (req, res) => {
+app.post('/api/linkFriends', (req, res) => {
   const { user, friend } = req.body;
 
   if (user === friend) {
@@ -181,7 +181,7 @@ function updateFriends(userId, friendId, userName, friendName, callback) {
 
 
   
-app.post('/createUser', async (req, res) => {
+app.post('/api/createUser', async (req, res) => {
   console.log("Create new user has been run");
   let private = generateKey(15)
   let public = generateKey(9)
@@ -211,7 +211,7 @@ app.post('/createUser', async (req, res) => {
   }
 });
 
-app.post('/getfriendsdata', async (req, res) => {
+app.post('/api/getfriendsdata', async (req, res) => {
   const user = req.body.user;
   const date = req.body.date;
   if(date === "NaN-NaN-NaN") { return; }
