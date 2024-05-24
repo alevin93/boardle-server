@@ -20,7 +20,8 @@ app.get('/check', (req, res) => {
 })
 
 app.post('/submit', (req, res) => {
-  const { user, data, comment } = req.body;
+  const { user, data, date, comment } = req.body;
+  console.log("Submit request handled")
 
   if (data === "" || '') {
     return res.send(400).json({ error : "Cannot be blank!" })
