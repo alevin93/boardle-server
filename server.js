@@ -7,6 +7,7 @@ const port = process.env.PORT;
 const db = require('./db');
 const cors = require('cors');
 const mysql = require('mysql2');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 app.use(cors(corsOptions));
@@ -177,10 +178,6 @@ function updateFriends(userId, friendId, userName, friendName, callback) {
       }
   );
 }
-
-
-
-
   
 app.post('/createUser', async (req, res) => {
   console.log("Create new user has been run");
@@ -215,7 +212,13 @@ app.post('/createUser', async (req, res) => {
 app.post('/getfriendsdata', async (req, res) => {
   const user = req.body.user;
   const date = req.body.date;
+  if(req.body.token) {
+    data = decodeJWT(req.body.token);
+    console.log(data);
+  }
   if(date === "NaN-NaN-NaN") { return; }
+
+  console.log("User: " + user +", Date: " + date);
 
   try {
       // 1. Fetch User's Friends and ID
@@ -259,6 +262,84 @@ app.post('/getfriendsdata', async (req, res) => {
   }
 });
 
+app.post('/register', async (req, res) => {
+  const { name, email, password, private } = req.body;
+
+  if (private) {
+    try {
+      const user = db.query(
+        'SELECT * FROM users WHERE private = ?',
+        [private], (error, result) => {
+          const userInfo = {
+            "id" : result[0].id,
+            "private" : private,
+            "name" : result[0].name,
+            "share" : result[0].share
+          }
+          try {
+            db.query(
+              'UPDATE users SET name = ?, username = ?, password = ? WHERE id = ?',
+              [name, email, password, result[0].id] // Array of parameters
+            );
+            console.log('DB Query went through');
+          } catch (error) {
+            console.error(error);
+            res.status(500).json({ error: 'Database Error' });
+          }
+          const token = generateJWT(userInfo);
+          console.log(token)
+          try {
+            res.json(JSON.stringify({
+              'private': result[0].private,
+              'name': result[0].name,
+              'share': result[0].share,
+              'token': token
+            }));
+          } catch (error) {
+            console.log(error);
+          }
+        }
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  }
+  else {
+    let private = generateKey(15);
+    let public = generateKey(9);
+    const friends = [];
+
+    const result = db.query(
+      'INSERT INTO users (name, private, public, username, password, friends) VALUES (?, ?, ?, ?, ?, JSON_ARRAY())',
+      [name, private, public, email, password, friends],
+      (error, result) => {
+          if (error) {
+              console.error(error);
+              return; // Handle error
+          }
+          
+          const userInfo = {
+              "id": result.insertId || null, // Use insertId if available, otherwise null
+              "private": private,
+              "name": name,
+              "share": public // Assuming public is the share field
+          };
+        const token = generateJWT(userInfo);
+          console.log(userInfo);
+          try {
+            res.json(JSON.stringify({
+              'private': private,
+              'name': name,
+              'share': public,
+              'token': token
+            }))
+          }
+          catch (error) {
+            console.log(error)
+          }
+        })
+  }
+});
 
 
 app.listen(port, () => {
@@ -273,7 +354,52 @@ function generateKey(length) {
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
-  return result;
+  if (duplicateKeyCheck) {
+    return result;
+  }
+  else {
+    return generateKey(length);
+  }
+}
+
+function duplicateKeyCheck(key) {
+  db.query('SELECT * FROM users WHERE private = ?', [key], (error, result) => {
+    if(result[0].id) {
+      console.log("Key is taken");
+      return false;
+    } else {
+      console.log("Key is not taken!")
+      return true;
+    }
+  })
+}
+
+function generateJWT(payload) {
+  // Default options
+  const defaultOptions = {
+  
+  };
+
+  return jwt.sign(payload, process.env.SECRET , defaultOptions);
+}
+
+function decodeJWT(token) {
+  try {
+    // Split the token into header, payload, and signature
+    const parts = token.split('.');
+    if (parts.length !== 3) {
+      return null;
+    }
+
+    // Base64 decode the payload (assuming JWT is using base64 encoding)
+    const decodedPayload = atob(parts[1]);
+
+    // Parse the decoded payload from JSON
+    return JSON.parse(decodedPayload);
+  } catch (error) {
+    console.error('Error decoding JWT:', error);
+    return null;
+  }
 }
 
 function findGameName(data) {
