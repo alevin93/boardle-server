@@ -8,6 +8,7 @@ const db = require('./db');
 const cors = require('cors');
 const mysql = require('mysql2');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 app.use(cors(corsOptions));
@@ -20,8 +21,16 @@ app.get('/check', (req, res) => {
   res.send("Connection working!").status(200);
 })
 
-app.post('/submit', (req, res) => {
-  const { user, data, date, comment } = req.body;
+app.post('/submit', async (req, res) => {
+  var { user, data, date, comment } = req.body;
+  if (req.body.token) {
+    token = req.body.token;
+    let data = await decodeJWT(req.body.token); // Await the decoding
+    console.log(data);
+    console.log(data.private);
+    user = await data.private;
+    date = req.body.date;
+  }
   console.log("Submit request handled")
 
   if (data === "" || '') {
@@ -44,6 +53,9 @@ app.post('/submit', (req, res) => {
       const gameName = findGameName(data);
       const formatted = formatGame(data, gameName);
 
+      if(gameName === null) {
+        return;
+      }
       if(comment == null) {
           comment = "";
       }
@@ -108,8 +120,15 @@ app.post('/restoreUser', async (req, res) => {
   }
 });
 
-app.post('/linkFriends', (req, res) => {
-  const { user, friend } = req.body;
+app.post('/linkFriends', async (req, res) => {
+  var { user, friend } = req.body;
+  if (req.body.token) {
+    token = req.body.token;
+    let data = await decodeJWT(req.body.token); // Await the decoding
+    console.log(data);
+    console.log(data.private);
+    user = await data.share;
+  }
 
   if (user === friend) {
     return res.status(400).json({ error: 'You cannot add yourself even if you are lonely' })
@@ -210,31 +229,54 @@ app.post('/createUser', async (req, res) => {
 });
 
 app.post('/getfriendsdata', async (req, res) => {
-  const user = req.body.user;
-  const date = req.body.date;
-  if(req.body.token) {
-    data = decodeJWT(req.body.token);
+  console.log(req.body.user);
+  var user = '';
+  var date = '';
+  var token = null;
+  if (req.body.token) {
+    token = req.body.token;
+    let data = await decodeJWT(req.body.token); // Await the decoding
     console.log(data);
+    console.log(data.share);
+    user = await data.share;
+    date = req.body.date;
   }
-  if(date === "NaN-NaN-NaN") { return; }
+  else {
+    user = req.body.user;
+    date = req.body.date;
+  }
+  if(date === "NaN-NaN-NaN") { send.res(500).json(JSON.stringify({ error: 'The server didnt receive a date! :*('})); return; }
+  if(!user) { res.status(500).json(JSON.stringify({ error: "The server didn't receive a user"})); return}
 
   console.log("User: " + user +", Date: " + date);
 
   try {
       // 1. Fetch User's Friends and ID
 
-      db.query('SELECT id, friends FROM users WHERE public = ?', [user], (error, userResult) => {
+      db.query('SELECT id, friends, name, private FROM users WHERE public = ?', [user], (error, userResult) => {
         if (error) {
             console.error('Error fetching friend:', error);
-            return res.status(500).json({ error: 'Internal server error' });
+            return res.status(500).json(JSON.stringify({ error: 'Error fetching friends data' }));
         }
+        console.log()
         if (userResult.length === 0) {
-            return res.status(404).json({ error: 'Friend not found' }); 
+          return  ; 
         }
-
         if (userResult.length === 0) {
             return res.status(404).json({ error: 'User not found' });
         }
+
+        if(token === null) {
+          const userInfo = {
+            "id" : userResult[0].id,
+            "private" : userResult[0].private,
+            "name" : userResult[0].name,
+            "share" : user
+          }
+          token = generateJWT(userInfo);
+          console.log("Token generated")
+        }
+
 
         const userId = userResult[0].id;
         const friendIds = userResult[0].friends.map((friend) => friend.id);
@@ -251,7 +293,9 @@ app.post('/getfriendsdata', async (req, res) => {
               console.log(error)
           } else {
               const combinedResults = results; // Access results here
-              res.json(JSON.stringify(combinedResults));
+                console.log("JSON STRINGIFY",JSON.stringify(token))
+                res.json(JSON.stringify({results: combinedResults, token: token}));
+
           }
         });
     })
@@ -263,36 +307,46 @@ app.post('/getfriendsdata', async (req, res) => {
 });
 
 app.post('/register', async (req, res) => {
-  const { name, email, password, private } = req.body;
+  
+  const { name, email, unhashed_password, private } = req.body;
+  const password = await hashPassword(unhashed_password, email);
 
   if (private) {
     try {
       const user = db.query(
         'SELECT * FROM users WHERE private = ?',
         [private], (error, result) => {
+          if(!result[0]){
+            res.status(500).json(JSON.stringify({ "error": "Cannot find that private key!" }));
+            return;
+          }
+          else if(error) {
+            res.status(500).json(JSON.stringify({ "error": error}))
+          }
           const userInfo = {
             "id" : result[0].id,
             "private" : private,
             "name" : result[0].name,
-            "share" : result[0].share
+            "share" : result[0].public
           }
           try {
+            console.log(password);
             db.query(
-              'UPDATE users SET name = ?, username = ?, password = ? WHERE id = ?',
-              [name, email, password, result[0].id] // Array of parameters
+              'UPDATE users SET name = ?, username = ?, password = ? WHERE private = ?',
+              [name === ''? userInfo.name : name, email, password, private] // Array of parameters
             );
-            console.log('DB Query went through');
           } catch (error) {
             console.error(error);
-            res.status(500).json({ error: 'Database Error' });
+            deleteSaltEntry(email);
+            res.status(500).json({ error: error });
           }
           const token = generateJWT(userInfo);
-          console.log(token)
+          console.log(userInfo)
           try {
             res.json(JSON.stringify({
-              'private': result[0].private,
+              'private': private,
               'name': result[0].name,
-              'share': result[0].share,
+              'share': result[0].public,
               'token': token
             }));
           } catch (error) {
@@ -301,7 +355,9 @@ app.post('/register', async (req, res) => {
         }
       );
     } catch (error) {
+      deleteSaltEntry(email);
       console.log(error);
+      
     }
   }
   else {
@@ -309,37 +365,103 @@ app.post('/register', async (req, res) => {
     let public = generateKey(9);
     const friends = [];
 
-    const result = db.query(
-      'INSERT INTO users (name, private, public, username, password, friends) VALUES (?, ?, ?, ?, ?, JSON_ARRAY())',
-      [name, private, public, email, password, friends],
-      (error, result) => {
-          if (error) {
-              console.error(error);
-              return; // Handle error
-          }
-          
-          const userInfo = {
-              "id": result.insertId || null, // Use insertId if available, otherwise null
-              "private": private,
-              "name": name,
-              "share": public // Assuming public is the share field
-          };
-        const token = generateJWT(userInfo);
-          console.log(userInfo);
-          try {
-            res.json(JSON.stringify({
-              'private': private,
-              'name': name,
-              'share': public,
-              'token': token
-            }))
-          }
-          catch (error) {
-            console.log(error)
-          }
-        })
+      const result = db.query(
+        'INSERT INTO users (name, private, public, username, password, friends) VALUES (?, ?, ?, ?, ?, JSON_ARRAY())',
+        [name, private, public, email, password, friends],
+        (error, result) => {
+            if (error) {
+                res.status(500).json(JSON.stringify({ error: 'Email is taken!'}));
+                return; // Handle error
+            }
+            
+            const userInfo = {
+                "id": result.insertId || null, // Use insertId if available, otherwise null
+                "private": private,
+                "name": name,
+                "share": public // Assuming public is the share field
+            };
+          const token = generateJWT(userInfo);
+            console.log(userInfo);
+            try {
+              res.json(JSON.stringify({
+                'private': private,
+                'name': name,
+                'share': public,
+                'token': token
+              }))
+            }
+            catch (error) {
+              console.log(error);
+              deleteSaltEntry(email);
+            }
+      })
   }
 });
+
+app.post('/login', async (req, res) => {
+  const username = req.body.username;
+  const password = req.body.password;
+
+  db.query('SELECT salt FROM salts WHERE username = ?', [username], (error, saltData) => {
+
+    
+
+    if (saltData.length === 0) {
+      return false; // Username not found
+    }
+
+    const salt = saltData[0].salt;
+    console.log('salt is: ', parseInt(salt));
+    bcrypt.hash(password, parseInt(salt)).then(hashedPassword => {
+
+    db.query('SELECT password FROM users WHERE username = ?', [username], (error, passwordData) => {
+
+    const passwordMatch =  bcrypt.compare(hashedPassword, passwordData[0].password);
+
+  
+  if (passwordMatch) {
+    const query = 'SELECT id, public, private, name FROM users WHERE username = ?';
+    db.query(query, [username], (error, results) => {
+      if (error) {
+        console.error(error);
+        return callback(error, null);  // Pass error to callback
+      }
+
+      if (!results.length) {
+        return callback(null, null);  // No user found, pass null to callback
+      }
+
+      const user = {
+        id: results[0].id,
+        share: results[0].public,
+        private: results[0].private,
+        name: results[0].name,
+      };
+      console.log(user);
+      const token = generateJWT(user);
+
+      res.json(JSON.stringify({
+        'private': results[0].private,
+        'name': results[0].name,
+        'share': results[0].public,
+        'token': token
+      }))
+      
+      });
+    }
+  
+    else if (!result) {
+      res.status(405).json(JSON.stringify({ error: "Incorrect username or password"})); return;
+    }
+    else {
+      console.log("Nothing interesting happened");
+    }
+  })
+  })
+  })
+});
+
+
 
 
 app.listen(port, () => {
@@ -354,24 +476,7 @@ function generateKey(length) {
   for (var i = 0; i < length; i++) {
     result += characters.charAt(Math.floor(Math.random() * characters.length));
   }
-  if (duplicateKeyCheck) {
-    return result;
-  }
-  else {
-    return generateKey(length);
-  }
-}
-
-function duplicateKeyCheck(key) {
-  db.query('SELECT * FROM users WHERE private = ?', [key], (error, result) => {
-    if(result[0].id) {
-      console.log("Key is taken");
-      return false;
-    } else {
-      console.log("Key is not taken!")
-      return true;
-    }
-  })
+  return result;
 }
 
 function generateJWT(payload) {
@@ -383,22 +488,79 @@ function generateJWT(payload) {
   return jwt.sign(payload, process.env.SECRET , defaultOptions);
 }
 
-function decodeJWT(token) {
+async function decodeJWT(token) {
   try {
     // Split the token into header, payload, and signature
     const parts = token.split('.');
     if (parts.length !== 3) {
       return null;
     }
-
+  
     // Base64 decode the payload (assuming JWT is using base64 encoding)
     const decodedPayload = atob(parts[1]);
-
     // Parse the decoded payload from JSON
     return JSON.parse(decodedPayload);
   } catch (error) {
     console.error('Error decoding JWT:', error);
     return null;
+  }
+}
+
+async function hashPassword(password, username) {
+  // Choose a suitable salt rounds value
+  const saltRounds = 10;
+  try {
+    // Generate a random salt for each password
+    const salt = saltRounds;
+
+    // Hash the password with the generated salt
+    const hash = bcrypt.hash(password, salt);
+
+    // Insert the hashed salt data with username reference into the salt table
+    db.query('INSERT INTO salts (username, salt) VALUES (?, ?)', [username, salt]);
+
+    return hash;
+  } catch (error) {
+    console.error("Error hashing password:", error);
+    throw error; // Or handle the error differently based on your application logic
+  }
+}
+
+async function verifyPassword(username, password) {
+  try {
+    const saltData = db.query('SELECT salt FROM salts WHERE username = ?', [username]);
+
+    if (saltData.length === 0) {
+      return false; // Username not found
+    }
+
+    const salt = await saltData[0].salt;
+
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const passwordMatch = await bcrypt.compare(hashedPassword, /* hashed password from database */);
+
+    return passwordMatch;
+  } catch (error) {
+    console.error("Error verifying password:", error);
+    throw error; // Or handle the error differently based on your application logic
+  }
+}
+
+async function deleteSaltEntry(username) {
+  try {
+    // Prepare the SQL statement with a placeholder for username
+    const sql = 'DELETE FROM salts WHERE username = ?';
+    const [deleteResult] = await db.execute(sql, [username]);
+
+    // Check if any rows were deleted
+    if (deleteResult.affectedRows === 1) {
+      console.log("Salt entry for", username, "deleted successfully.");
+    } else {
+      console.log("No salt entry found for", username);
+    }
+  } catch (error) {
+    console.error("Error deleting salt entry:", error);
+    // Handle errors appropriately based on your application logic
   }
 }
 
