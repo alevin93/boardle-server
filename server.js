@@ -131,6 +131,39 @@ app.post('/restoreUser', async (req, res) => {
   }
 });
 
+app.post('/removeFriend', async (req,res) => {
+  const user = req.body.user;
+  const newFriends = req.body.friends;
+
+  try {
+
+    db.query('SELECT id, friends FROM users WHERE private = ?', [user], (error, userData) => {
+    if (!userData.length) {
+      return res.status(404).send('User not found');
+    }
+    // console.log(userData[0].id)
+    // const friendIndex = null;
+    // for(let x = 0; x < userData[0].friends.length; x++) {
+    //   if(userData[0].friends[x].id === removedFriendId) {
+    //     friendIndex = x;
+    //   }
+    // }
+    // if(!friendIndex) {
+    //   return res.status(500).json(JSON.stringify({ message: "Friend not found...." }));
+    // }
+
+    db.query(`UPDATE users SET friends = JSON_ARRAY(${newFriends}) WHERE id = ?;`, [userData[0].id], (error) => {
+
+      res.json({ message: 'Friend successfully removed' });
+    });
+
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Internal server error: Friend remove unsuccessful'});
+  }
+})
+
 app.post('/linkFriends', async (req, res) => {
   var { user, friend } = req.body;
   if (req.body.token) {
@@ -154,10 +187,10 @@ app.post('/linkFriends', async (req, res) => {
       if (userResult.length === 0) {
           return res.status(404).json({ error: 'User not found' }); 
       }
-
       const userId = userResult[0].id;
       const userName = userResult[0].name;
       const userFriends = userResult[0].friends;
+
 
       db.query('SELECT id, name, friends FROM users WHERE public = ?', [friend], (error, friendResult) => {
           if (error) {
@@ -167,15 +200,14 @@ app.post('/linkFriends', async (req, res) => {
           if (friendResult.length === 0) {
               return res.status(404).json({ error: 'Friend not found' }); 
           }
+          for(let x = 0; x < userFriends.length; x++) {
+            if(userFriends[x].id === friendResult[0].id) {
+              return res.status(403).json(JSON.stringify({ message: "You already have that friend!" }))
+            }
+          }
 
           const friendId = friendResult[0].id;
           const friendName = friendResult[0].name;
-
-          for(let x = 0; x < userFriends.length; x++) {
-            if (userFriends[x].id === friendId) {
-              return res.status(400).json({ error: "You already have that friend!" })
-            }
-          }
 
           // 2. Update Friends Arrays - Nested for Sequential Execution
           updateFriends(userId, friendId, userName, friendName, (err) => { 
@@ -634,10 +666,8 @@ function costcodleTrim(str) {
 }
 
 function miniTrim(text) {
-  text = text.replace('I solved the ', '');
-  text = text.replace('New York Times Mini Crossword in ', '\n');
-  text = text.replace('!','');
-  return text;
+  const newText = text.split().map(token => token.replace(/!$/, ""));
+  return `${newText[3]}\n${newText[10]}`;
 }
 
 function contextoTrim(text) {
