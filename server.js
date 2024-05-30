@@ -26,16 +26,16 @@ app.post('/submit', async (req, res) => {
   if (req.body.token) {
     token = req.body.token;
     let data = await decodeJWT(req.body.token); // Await the decoding
-    console.log(data);
-    console.log(data.private);
+    
     user = await data.private;
     date = req.body.date;
   }
   console.log("Submit request handled")
 
   if (data === "" || '') {
-    return res.send(400).json({ error : "Cannot be blank!" })
   }
+
+  console.log(data);
 
   db.query('SELECT id, name FROM users WHERE private = ?', [user], (error, result) => {
       if (error) {
@@ -91,7 +91,18 @@ app.post('/submit', async (req, res) => {
   });
 });
 
+app.post('/fetchFriends', async (req, res) => {
+  const userKey = req.body.user; // Assuming user key is sent as a query parameter
+  console.log("userKey is: ",userKey);
+  // Database query using prepared statement to prevent SQL injection
+  const efriends = db.query('SELECT friends FROM users WHERE private = ?', [userKey], (error, userInfo) => {
 
+  console.log(userInfo[0].friends)
+
+  res.json({ 'friends':  JSON.stringify(userInfo[0].friends)});
+
+  });
+})
 
 app.post('/restoreUser', async (req, res) => {
   const user = req.body.user;
