@@ -666,8 +666,10 @@ function costcodleTrim(str) {
 }
 
 function miniTrim(text) {
-  const newText = text.split().map(token => token.replace(/!$/, ""));
-  return `${newText[3]}\n${newText[10]}`;
+  const newText = text.split(" ").map(token => token.replace(/!$/, ""));
+  console.log(newText);
+  return `${newText[3]}\n${newText[10].split("!")[0]}`;
+
 }
 
 function contextoTrim(text) {
