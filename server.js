@@ -202,7 +202,7 @@ app.post('/linkFriends', async (req, res) => {
           }
           for(let x = 0; x < userFriends.length; x++) {
             if(userFriends[x].id === friendResult[0].id) {
-              return res.status(403).json(JSON.stringify({ message: "You already have that friend!" }))
+              return res.status(500).json(JSON.stringify({ error : "You already have that friend!" }))
             }
           }
 
@@ -210,24 +210,32 @@ app.post('/linkFriends', async (req, res) => {
           const friendName = friendResult[0].name;
 
           // 2. Update Friends Arrays - Nested for Sequential Execution
-          updateFriends(userId, friendId, userName, friendName, (err) => { 
+          updateFriends(userId, friendId, userName, friendName, friendResult[0].friends, (err) => { 
               if (err) {
                   console.error('Error linking friends:', err);
-                  return res.status(500).json({ error: 'Internal server error' });
+                  return res.status(500).json(JSON.stringify({ error: 'Internal server error: ' + err }));
+              } else {
+               return res.status(200); // Success!
               }
-              res.sendStatus(200); // Success!
           });
       });
   });
 });
 
 // Helper function for database updates
-function updateFriends(userId, friendId, userName, friendName, callback) {
+function updateFriends(userId, friendId, userName, friendName, friendsFriends, callback) {
   db.query(
       'UPDATE users SET friends = JSON_ARRAY_APPEND(friends, \'$\', JSON_OBJECT(\'id\', ?, \'name\', ?)) WHERE id = ?',
       [friendId, friendName, userId],
       (error) => {
          if (error) { return callback(error); } // Handle error within update
+
+         for(let x = 0; x < friendsFriends.length; x++) {
+          if(friendsFriends[x].id === userId) {
+            callback('They already have you as a friend');
+            return;
+          }
+        }
 
          // Perform the second update
          db.query(
@@ -400,7 +408,6 @@ app.post('/register', async (req, res) => {
     } catch (error) {
       deleteSaltEntry(email);
       console.log(error);
-      
     }
   }
   else {
@@ -412,9 +419,10 @@ app.post('/register', async (req, res) => {
         'INSERT INTO users (name, private, public, username, password, friends) VALUES (?, ?, ?, ?, ?, JSON_ARRAY())',
         [name, private, public, email, password, friends],
         (error, result) => {
+          console.log(error);
             if (error) {
                 res.status(500).json(JSON.stringify({ error: 'Email is taken!'}));
-                return; // Handle error
+                return;
             }
             
             const userInfo = {
