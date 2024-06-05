@@ -30,12 +30,9 @@ app.post('/submit', async (req, res) => {
     user = await data.private;
     date = req.body.date;
   }
-  console.log("Submit request handled")
 
   if (data === "" || '') {
   }
-
-  console.log(data);
 
   db.query('SELECT id, name FROM users WHERE private = ?', [user], (error, result) => {
       if (error) {
@@ -44,7 +41,6 @@ app.post('/submit', async (req, res) => {
       }
 
       if (result.length === 0) { 
-          console.log("Player not found.");
           return res.send({ error: "Player not found" }); 
       }
 
@@ -92,12 +88,9 @@ app.post('/submit', async (req, res) => {
 });
 
 app.post('/fetchFriends', async (req, res) => {
-  const userKey = req.body.user; // Assuming user key is sent as a query parameter
-  console.log("userKey is: ",userKey);
+  const userKey = req.body.user; 
   // Database query using prepared statement to prevent SQL injection
   const efriends = db.query('SELECT friends FROM users WHERE private = ?', [userKey], (error, userInfo) => {
-
-  console.log(userInfo[0].friends)
 
   res.json({ 'friends':  JSON.stringify(userInfo[0].friends)});
 
@@ -141,7 +134,8 @@ app.post('/removeFriend', async (req,res) => {
     if (!userData.length) {
       return res.status(404).send('User not found');
     }
-    // console.log(userData[0].id)
+    console.log(userData[0].id)
+    console.log(newFriends);
     // const friendIndex = null;
     // for(let x = 0; x < userData[0].friends.length; x++) {
     //   if(userData[0].friends[x].id === removedFriendId) {
@@ -152,9 +146,16 @@ app.post('/removeFriend', async (req,res) => {
     //   return res.status(500).json(JSON.stringify({ message: "Friend not found...." }));
     // }
 
-    db.query(`UPDATE users SET friends = JSON_ARRAY(${newFriends}) WHERE id = ?;`, [userData[0].id], (error) => {
-
-      res.json({ message: 'Friend successfully removed' });
+    //db.query(`UPDATE users SET friends = JSON_ARRAY(${newFriends}) WHERE id = ?;`, [userData[0].id], (error) => {
+      db.query(
+        `UPDATE users SET friends = ? WHERE id = ?`,
+        [JSON.stringify(newFriends), userData[0].id],
+        (error) => {
+      if(error) { 
+        return res.json({ message: 'Error removing friend' }); 
+      } else {
+        return res.json({ message: 'Friend successfully removed' });
+      }
     });
 
     });
@@ -168,9 +169,7 @@ app.post('/linkFriends', async (req, res) => {
   var { user, friend } = req.body;
   if (req.body.token) {
     token = req.body.token;
-    let data = await decodeJWT(req.body.token); // Await the decoding
-    console.log(data);
-    console.log(data.private);
+    let data = await decodeJWT(req.body.token);
     user = await data.share;
   }
 
@@ -212,8 +211,8 @@ app.post('/linkFriends', async (req, res) => {
           // 2. Update Friends Arrays - Nested for Sequential Execution
           updateFriends(userId, friendId, userName, friendName, friendResult[0].friends, (err) => { 
               if (err) {
-                  console.error('Error linking friends:', err);
-                  return res.status(500).json(JSON.stringify({ error: 'Internal server error: ' + err }));
+                  console.error(err);
+                  return res.status(500).json(JSON.stringify({ error: err }));
               } else {
                return res.status(200); // Success!
               }
@@ -232,7 +231,7 @@ function updateFriends(userId, friendId, userName, friendName, friendsFriends, c
 
          for(let x = 0; x < friendsFriends.length; x++) {
           if(friendsFriends[x].id === userId) {
-            callback('They already have you as a friend');
+            callback();
             return;
           }
         }
@@ -250,7 +249,6 @@ function updateFriends(userId, friendId, userName, friendName, friendsFriends, c
 }
   
 app.post('/createUser', async (req, res) => {
-  console.log("Create new user has been run");
   let private = generateKey(15)
   let public = generateKey(9)
   const newData = {
@@ -280,15 +278,12 @@ app.post('/createUser', async (req, res) => {
 });
 
 app.post('/getfriendsdata', async (req, res) => {
-  console.log(req.body.user);
   var user = '';
   var date = '';
   var token = null;
   if (req.body.token) {
     token = req.body.token;
-    let data = await decodeJWT(req.body.token); // Await the decoding
-    console.log(data);
-    console.log(data.share);
+    let data = await decodeJWT(req.body.token); 
     user = await data.share;
     date = req.body.date;
   }
@@ -299,8 +294,6 @@ app.post('/getfriendsdata', async (req, res) => {
   if(date === "NaN-NaN-NaN") { send.res(500).json(JSON.stringify({ error: 'The server didnt receive a date! :*('})); return; }
   if(!user) { res.status(500).json(JSON.stringify({ error: "The server didn't receive a user"})); return}
 
-  console.log("User: " + user +", Date: " + date);
-
   try {
       // 1. Fetch User's Friends and ID
 
@@ -309,7 +302,6 @@ app.post('/getfriendsdata', async (req, res) => {
             console.error('Error fetching friend:', error);
             return res.status(500).json(JSON.stringify({ error: 'Error fetching friends data' }));
         }
-        console.log()
         if (userResult.length === 0) {
           return  ; 
         }
@@ -325,9 +317,10 @@ app.post('/getfriendsdata', async (req, res) => {
             "share" : user
           }
           token = generateJWT(userInfo);
-          console.log("Token generated")
         }
 
+
+        console.log(userResult[0].friends)
 
         const userId = userResult[0].id;
         const friendIds = userResult[0].friends.map((friend) => friend.id);
@@ -341,10 +334,8 @@ app.post('/getfriendsdata', async (req, res) => {
         // Execute the combined query
         db.query(friendGamesQuery, [friendIds, date, userId, date],  (error, results) => {
           if (error) { 
-              console.log(error)
           } else {
               const combinedResults = results; // Access results here
-                console.log("JSON STRINGIFY",JSON.stringify(token))
                 res.json(JSON.stringify({results: combinedResults, token: token}));
 
           }
@@ -381,7 +372,6 @@ app.post('/register', async (req, res) => {
             "share" : result[0].public
           }
           try {
-            console.log(password);
             db.query(
               'UPDATE users SET name = ?, username = ?, password = ? WHERE private = ?',
               [name === ''? userInfo.name : name, email, password, private] // Array of parameters
@@ -392,7 +382,6 @@ app.post('/register', async (req, res) => {
             res.status(500).json({ error: error });
           }
           const token = generateJWT(userInfo);
-          console.log(userInfo)
           try {
             res.json(JSON.stringify({
               'private': private,
@@ -401,13 +390,11 @@ app.post('/register', async (req, res) => {
               'token': token
             }));
           } catch (error) {
-            console.log(error);
           }
         }
       );
     } catch (error) {
       deleteSaltEntry(email);
-      console.log(error);
     }
   }
   else {
@@ -419,7 +406,6 @@ app.post('/register', async (req, res) => {
         'INSERT INTO users (name, private, public, username, password, friends) VALUES (?, ?, ?, ?, ?, JSON_ARRAY())',
         [name, private, public, email, password, friends],
         (error, result) => {
-          console.log(error);
             if (error) {
                 res.status(500).json(JSON.stringify({ error: 'Email is taken!'}));
                 return;
@@ -432,7 +418,6 @@ app.post('/register', async (req, res) => {
                 "share": public // Assuming public is the share field
             };
           const token = generateJWT(userInfo);
-            console.log(userInfo);
             try {
               res.json(JSON.stringify({
                 'private': private,
@@ -442,7 +427,6 @@ app.post('/register', async (req, res) => {
               }))
             }
             catch (error) {
-              console.log(error);
               deleteSaltEntry(email);
             }
       })
@@ -462,7 +446,6 @@ app.post('/login', async (req, res) => {
     }
 
     const salt = saltData[0].salt;
-    console.log('salt is: ', parseInt(salt));
     bcrypt.hash(password, parseInt(salt)).then(hashedPassword => {
 
     db.query('SELECT password FROM users WHERE username = ?', [username], (error, passwordData) => {
@@ -488,7 +471,6 @@ app.post('/login', async (req, res) => {
         private: results[0].private,
         name: results[0].name,
       };
-      console.log(user);
       const token = generateJWT(user);
 
       res.json(JSON.stringify({
@@ -505,7 +487,6 @@ app.post('/login', async (req, res) => {
       res.status(405).json(JSON.stringify({ error: "Incorrect username or password"})); return;
     }
     else {
-      console.log("Nothing interesting happened");
     }
   })
   })
@@ -599,19 +580,14 @@ async function verifyPassword(username, password) {
 
 async function deleteSaltEntry(username) {
   try {
-    // Prepare the SQL statement with a placeholder for username
     const sql = 'DELETE FROM salts WHERE username = ?';
     const [deleteResult] = await db.execute(sql, [username]);
 
     // Check if any rows were deleted
     if (deleteResult.affectedRows === 1) {
-      console.log("Salt entry for", username, "deleted successfully.");
     } else {
-      console.log("No salt entry found for", username);
     }
   } catch (error) {
-    console.error("Error deleting salt entry:", error);
-    // Handle errors appropriately based on your application logic
   }
 }
 
@@ -675,7 +651,6 @@ function costcodleTrim(str) {
 
 function miniTrim(text) {
   const newText = text.split(" ").map(token => token.replace(/!$/, ""));
-  console.log(newText);
   return `${newText[3]}\n${newText[10].split("!")[0]}`;
 
 }
