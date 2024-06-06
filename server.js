@@ -9,6 +9,7 @@ const cors = require('cors');
 const mysql = require('mysql2');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const nodemailer = require('nodemailer');
 
 const app = express();
 app.use(cors(corsOptions));
@@ -16,6 +17,72 @@ app.use(express.json());
 
 
 //connectDB();
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+      user: 'boardle.site@gmail.com',
+      pass: 'hkkd foii ukgh lgio'
+  }
+});
+
+app.post('/resetPassword', async (req, res) => {
+
+  const email = req.body.email;
+  const code = generateKey(18);
+
+  try {
+    // Database operations with callbacks
+    db.query('SELECT COUNT(*) AS email_count FROM recovery WHERE email = ?', [email], (err, result) => {
+      if (err) {
+        console.error(err);
+        res.status(500).send("Error checking email");
+        return;  // Exit the callback function if error
+      }
+
+      const emailCount = result[0].email_count;
+
+      if (emailCount > 0) {
+        db.query('DELETE FROM recovery WHERE email = ?', [email], (err, deleteResult) => {
+          if (err) {
+            console.error(err);
+            res.status(500).send("Error deleting existing recovery data");
+            return;  // Exit the callback function if error
+          }
+
+          if (deleteResult.affectedRows > 0) {
+            console.log("Existing recovery data deleted");
+          }
+        });
+      }
+
+      db.query('INSERT INTO recovery (email, code) VALUES (?, ?)', [email, code], (err, insertResult) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send("Error inserting new recovery data");
+          return;  // Exit the callback function if error
+        }
+
+        console.log("Recovery data inserted successfully!");
+      });
+    });
+
+    // Send email after database operations (assuming successful insertion or deletion)
+    const info = await transporter.sendMail({
+      from: '"no-reply@boardle.site" <watson.cormier46@ethereal.email>',
+      to: `${req.body.email}`,
+      subject: "Boardle Password Reset",
+      text: "Hello world?",
+    });
+
+    console.log(info);
+    res.send("Email sent successfully!");
+
+  } catch (error) {
+    console.error("Error sending reset email:", error);
+    res.status(500).send("Error sending reset email");
+  }
+});
 
 app.get('/check', (req, res) => {
   res.send("Connection working!").status(200);
