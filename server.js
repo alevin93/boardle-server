@@ -69,20 +69,65 @@ app.post('/resetPassword', async (req, res) => {
 
     // Send email after database operations (assuming successful insertion or deletion)
     const info = await transporter.sendMail({
-      from: '"no-reply@boardle.site" <watson.cormier46@ethereal.email>',
+      from: '"no-reply@boardle.site" <no-reply@boardle.site>',
       to: `${req.body.email}`,
       subject: "Boardle Password Reset",
-      text: "Hello world?",
+      html: `<a href=${process.env.BASE_URL}/recover/${code}>Click here to reset password</a>`,
     });
 
     console.log(info);
-    res.send("Email sent successfully!");
+    res.send(JSON.stringify({ message: "Email sent successfully!"}));
 
   } catch (error) {
     console.error("Error sending reset email:", error);
     res.status(500).send("Error sending reset email");
   }
 });
+
+app.post('/recoverPassword', async (req,res) => {
+  const code = req.body.code;
+  console.log(code);
+
+  db.query('SELECT email FROM recovery WHERE code = ?', [code], (err, userEmail) => {
+    console.log(userEmail[0]);
+    if(!userEmail[0]) { return res.status(500).json({ error: "No user found with this code"})}
+    const email = userEmail[0].email;
+
+    db.query('SELECT * FROM users WHERE username = ?', [email], (err, userResult) => {
+      if(err) { console.log(err); return res.status(500).json({ error: err})}
+
+      const userInfo = {
+        "id" : userResult[0].id,
+        "private" : userResult[0].private,
+        "name" : userResult[0].name,
+        "share" : userResult[0].public,
+        "email" : email
+      }
+      const token = generateJWT(userInfo);
+      return res.json({ token: token, name: userInfo.name, private: userInfo.private, share: userInfo.share })
+    })
+  })
+})
+
+app.post('/changePassword', async (req, res) => {
+  const token = req.body.token;
+  console.log(token);
+
+  let userInfo = await decodeJWT(token); // Await the decoding
+
+  console.log(userInfo)
+    
+  const pass = await hashPassword(req.body.password, await userInfo.email);
+  console.log(userInfo);
+
+   db.query('UPDATE users SET password = ? WHERE id = ?', [pass, userInfo.id], (err, result) => {
+    if(err) { res.json({ error: err})}
+
+    else { 
+      res.json({ message: "Password changed!"})
+    }
+   })
+})
 
 app.get('/check', (req, res) => {
   res.send("Connection working!").status(200);
@@ -92,7 +137,7 @@ app.post('/submit', async (req, res) => {
   var { user, data, date, comment } = req.body;
   if (req.body.token) {
     token = req.body.token;
-    let data = await decodeJWT(req.body.token); // Await the decoding
+    let data = await decodeJWT(req.body.token); // Await the decodin
     
     user = await data.private;
     date = req.body.date;
@@ -364,7 +409,7 @@ app.post('/getfriendsdata', async (req, res) => {
   try {
       // 1. Fetch User's Friends and ID
 
-      db.query('SELECT id, friends, name, private FROM users WHERE public = ?', [user], (error, userResult) => {
+      db.query('SELECT id, friends, name, private, username FROM users WHERE public = ?', [user], (error, userResult) => {
         if (error) {
             console.error('Error fetching friend:', error);
             return res.status(500).json(JSON.stringify({ error: 'Error fetching friends data' }));
@@ -381,7 +426,8 @@ app.post('/getfriendsdata', async (req, res) => {
             "id" : userResult[0].id,
             "private" : userResult[0].private,
             "name" : userResult[0].name,
-            "share" : user
+            "share" : user,
+            "email" : userResult[0].username
           }
           token = generateJWT(userInfo);
         }
@@ -436,7 +482,8 @@ app.post('/register', async (req, res) => {
             "id" : result[0].id,
             "private" : private,
             "name" : result[0].name,
-            "share" : result[0].public
+            "share" : result[0].public,
+            "email" : email
           }
           try {
             db.query(
@@ -454,7 +501,8 @@ app.post('/register', async (req, res) => {
               'private': private,
               'name': result[0].name,
               'share': result[0].public,
-              'token': token
+              'token': token,
+              "email": email
             }));
           } catch (error) {
           }
@@ -482,7 +530,8 @@ app.post('/register', async (req, res) => {
                 "id": result.insertId || null, // Use insertId if available, otherwise null
                 "private": private,
                 "name": name,
-                "share": public // Assuming public is the share field
+                "share": public,
+                "email": email
             };
           const token = generateJWT(userInfo);
             try {
@@ -490,7 +539,8 @@ app.post('/register', async (req, res) => {
                 'private': private,
                 'name': name,
                 'share': public,
-                'token': token
+                'token': token,
+                'email': email
               }))
             }
             catch (error) {
@@ -521,7 +571,7 @@ app.post('/login', async (req, res) => {
 
   
   if (passwordMatch) {
-    const query = 'SELECT id, public, private, name FROM users WHERE username = ?';
+    const query = 'SELECT id, public, private, name, username FROM users WHERE username = ?';
     db.query(query, [username], (error, results) => {
       if (error) {
         console.error(error);
@@ -537,6 +587,7 @@ app.post('/login', async (req, res) => {
         share: results[0].public,
         private: results[0].private,
         name: results[0].name,
+        email: results[0].username
       };
       const token = generateJWT(user);
 
